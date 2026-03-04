@@ -1,6 +1,6 @@
 # Record Management System
 
-**CSCK541 Software Development in Practice** — University of Liverpool (MSc)
+**CSCK541 Software Development in Practice**
 
 ## About
 
