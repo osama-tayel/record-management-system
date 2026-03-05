@@ -81,7 +81,3 @@ python -m unittest discover -s tests
 | Fouzia Farqan | Engineer |
 | Chadé Smith | Designer |
 | Callum Blanshard | Tester |
-
-## License
-
-University of Liverpool — CSCK541 coursework. Not for redistribution.
