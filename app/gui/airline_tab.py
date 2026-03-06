@@ -1,1 +1,261 @@
-"""GUI tab for managing airline records."""
+"""
+Airline Tab GUI
+
+Provides the graphical interface for managing airline records.
+This tab connects the airline model CRUD functions to the GUI form.
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+from app.models.airline import (
+    create_airline,
+    validate_airline,
+    get_airlines,
+    update_airline,
+    delete_airline,
+    search_airlines,
+)
+
+
+class AirlineTab:
+    """
+    GUI tab responsible for airline record management.
+    Handles form input, validation, and table updates.
+    """
+
+    def __init__(self, parent):
+
+        self.parent = parent
+
+        # In-memory records list
+        # (Shared across tabs in a real application)
+        self.records = []
+
+        # =============================
+        # Tkinter Variables
+        # =============================
+
+        self.company_name_var = tk.StringVar()
+        self.search_var = tk.StringVar()
+
+        # =============================
+        # Airline Form
+        # =============================
+
+        form_frame = ttk.LabelFrame(parent, text="Airline Information")
+        form_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(form_frame, text="Company Name:").grid(
+            row=0, column=0, padx=5, pady=5, sticky="w"
+        )
+
+        ttk.Entry(
+            form_frame,
+            textvariable=self.company_name_var,
+            width=40,
+        ).grid(row=0, column=1, padx=5, pady=5)
+
+        # =============================
+        # CRUD Buttons
+        # =============================
+
+        button_frame = ttk.Frame(parent)
+        button_frame.pack(fill="x", padx=10, pady=5)
+
+        ttk.Button(button_frame, text="Save", command=self.save_record).pack(
+            side="left", padx=5
+        )
+
+        ttk.Button(button_frame, text="Update", command=self.update_record).pack(
+            side="left", padx=5
+        )
+
+        ttk.Button(button_frame, text="Delete", command=self.delete_record).pack(
+            side="left", padx=5
+        )
+
+        ttk.Button(button_frame, text="Clear", command=self.clear_form).pack(
+            side="left", padx=5
+        )
+
+        # =============================
+        # Search Section
+        # =============================
+
+        search_frame = ttk.LabelFrame(parent, text="Search Airlines")
+        search_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Entry(
+            search_frame,
+            textvariable=self.search_var,
+            width=40,
+        ).pack(side="left", padx=5, pady=5)
+
+        ttk.Button(
+            search_frame,
+            text="Search",
+            command=self.search_records,
+        ).pack(side="left", padx=5)
+
+        # =============================
+        # Treeview Table
+        # =============================
+
+        table_frame = ttk.Frame(parent)
+        table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=("ID", "Company Name"),
+            show="headings",
+        )
+
+        self.tree.heading("ID", text="ID")
+        self.tree.heading("Company Name", text="Company Name")
+
+        self.tree.column("ID", width=80)
+        self.tree.column("Company Name", width=300)
+
+        self.tree.pack(fill="both", expand=True)
+
+        # Bind row selection event
+        self.tree.bind("<<TreeviewSelect>>", self.on_row_select)
+
+    # =========================================================
+    # CRUD Methods
+    # =========================================================
+
+    def next_id(self):
+        """Generate the next airline ID."""
+
+        airlines = get_airlines(self.records)
+
+        if not airlines:
+            return 1
+
+        return max(a["ID"] for a in airlines) + 1
+
+    def save_record(self):
+        """Create a new airline record."""
+
+        company_name = self.company_name_var.get().strip()
+
+        valid, error = validate_airline(company_name)
+
+        if not valid:
+            messagebox.showerror("Validation Error", error)
+            return
+
+        airline_id = self.next_id()
+
+        airline = create_airline(airline_id, company_name)
+
+        self.records.append(airline)
+
+        self.refresh_treeview()
+        self.clear_form()
+
+        messagebox.showinfo("Success", "Airline record created.")
+
+    def update_record(self):
+        """Update the selected airline."""
+
+        selected = self.tree.selection()
+
+        if not selected:
+            messagebox.showerror("Error", "Select a record to update.")
+            return
+
+        item = self.tree.item(selected[0])
+        airline_id = item["values"][0]
+
+        company_name = self.company_name_var.get().strip()
+
+        valid, error = validate_airline(company_name)
+
+        if not valid:
+            messagebox.showerror("Validation Error", error)
+            return
+
+        update_airline(
+            self.records,
+            airline_id,
+            {"Company Name": company_name},
+        )
+
+        self.refresh_treeview()
+
+        messagebox.showinfo("Success", "Airline record updated.")
+
+    def delete_record(self):
+        """Delete the selected airline."""
+
+        selected = self.tree.selection()
+
+        if not selected:
+            messagebox.showerror("Error", "Select a record to delete.")
+            return
+
+        confirm = messagebox.askokcancel(
+            "Delete",
+            "Are you sure you want to delete this airline?",
+        )
+
+        if not confirm:
+            return
+
+        item = self.tree.item(selected[0])
+        airline_id = item["values"][0]
+
+        delete_airline(self.records, airline_id)
+
+        self.refresh_treeview()
+
+    def clear_form(self):
+        """Clear form inputs."""
+
+        self.company_name_var.set("")
+
+    def search_records(self):
+        """Search airline records."""
+
+        search_term = self.search_var.get()
+
+        results = search_airlines(self.records, search_term)
+
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        for record in results:
+            self.tree.insert(
+                "",
+                "end",
+                values=(record["ID"], record["Company Name"]),
+            )
+
+    def refresh_treeview(self):
+        """Refresh the table with current airline records."""
+
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        for record in get_airlines(self.records):
+            self.tree.insert(
+                "",
+                "end",
+                values=(record["ID"], record["Company Name"]),
+            )
+
+    def on_row_select(self, event):
+        """Populate the form when a row is selected."""
+
+        selected = self.tree.selection()
+
+        if not selected:
+            return
+
+        item = self.tree.item(selected[0])
+        values = item["values"]
+
+        self.company_name_var.set(values[1])
