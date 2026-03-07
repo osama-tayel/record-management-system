@@ -1,8 +1,5 @@
-"""GUI tab for managing airline records.
-
-Placeholder layout with Treeview and form scaffolding.
-Full CRUD wiring to be completed in S1-09.
-"""
+# GUI tab for managing airline records.
+# Layout with Treeview and form scaffolding. CRUD wiring in S1-09.
 
 import tkinter as tk
 from tkinter import ttk
@@ -11,7 +8,7 @@ from typing import List, Dict
 from app.models.airline import get_airlines
 
 
-# Treeview columns (key, heading, width)
+# (key, heading, width)
 AIRLINE_COLUMNS = [
     ("ID", "ID", 80),
     ("Company Name", "Company Name", 300),
@@ -22,8 +19,6 @@ class AirlineTab:
     """Airline record management tab (layout scaffold)."""
 
     def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
-        """Initialise the airline tab inside the given parent frame."""
-
         self.parent = parent
         self.records = records
         self.field_vars: Dict[str, tk.StringVar] = {}
@@ -36,8 +31,6 @@ class AirlineTab:
         self.refresh_table()
 
     def _build_form(self, parent: ttk.Frame) -> None:
-        """Build the airline input form."""
-
         form = ttk.Frame(parent, style="TFrame")
         form.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
         form.columnconfigure(1, weight=1)
@@ -56,8 +49,6 @@ class AirlineTab:
         )
 
     def _build_table(self, parent: ttk.Frame) -> None:
-        """Build the Treeview table for airline records."""
-
         table_frame = ttk.Frame(parent, style="TFrame")
         table_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
         table_frame.columnconfigure(0, weight=1)
@@ -81,8 +72,6 @@ class AirlineTab:
         self.tree.configure(yscrollcommand=scrollbar.set)
 
     def refresh_table(self) -> None:
-        """Reload the table with all airline records."""
-
         self.tree.delete(*self.tree.get_children())
         col_keys = [c[0] for c in AIRLINE_COLUMNS]
         for record in get_airlines(self.records):

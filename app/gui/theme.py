@@ -1,10 +1,9 @@
-"""Simple ttk styling for the Record Management System."""
+# Simple ttk styling for the Record Management System.
 
 import tkinter as tk
 from tkinter import ttk
 
-
-# Colours
+# colours
 BG = "#F5F5F5"
 FG = "#1C1B1D"
 PRIMARY = "#6442D6"
@@ -23,29 +22,24 @@ def apply_theme(root: tk.Tk) -> ttk.Style:
     style = ttk.Style(root)
     style.theme_use("clam")
 
-    # Frames and labels
     style.configure("TFrame", background=BG)
     style.configure("TLabel", background=BG, foreground=FG, font=FONT)
     style.configure("Heading.TLabel", font=FONT_HEADING, foreground=PRIMARY, background=BG)
     style.configure("Title.TLabel", font=FONT_BOLD, foreground=FG, background=BG)
 
-    # Entry
     style.configure("TEntry", padding=(8, 6), font=FONT)
     style.map("TEntry", bordercolor=[("focus", PRIMARY)])
 
-    # Buttons
     style.configure("TButton", font=FONT_BOLD, padding=(14, 7))
     style.configure("Primary.TButton", background=PRIMARY, foreground=WHITE, font=FONT_BOLD, padding=(14, 7))
     style.map("Primary.TButton", background=[("active", "#5635C0")])
     style.configure("Danger.TButton", background=RED, foreground=WHITE, font=FONT_BOLD, padding=(14, 7))
     style.map("Danger.TButton", background=[("active", "#B71C1C")])
 
-    # Tabs
     style.configure("TNotebook", background=BG, borderwidth=0)
     style.configure("TNotebook.Tab", font=FONT_BOLD, padding=(18, 8))
     style.map("TNotebook.Tab", foreground=[("selected", PRIMARY)])
 
-    # Treeview
     style.configure("Treeview", font=FONT, rowheight=30)
     style.configure("Treeview.Heading", font=FONT_BOLD)
     style.map("Treeview", background=[("selected", LIGHT_GRAY)])

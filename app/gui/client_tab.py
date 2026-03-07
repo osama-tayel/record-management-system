@@ -1,9 +1,5 @@
-"""GUI tab for managing client records.
-
-Provides a form panel with StringVar-bound entry fields and a Treeview
-table displaying all client records. Uses grid() exclusively and follows
-the custom theme defined in theme.py.
-"""
+# GUI tab for managing client records.
+# Form panel with StringVar-bound fields and a Treeview table.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -16,7 +12,7 @@ from app.models.client import (
 from app.models.id_generator import get_next_id
 
 
-# Client field schema: (dict_key, label_text, required)
+# (dict_key, label_text, required)
 CLIENT_FIELDS = [
     ("Name", "Name", True),
     ("Address Line 1", "Address Line 1", True),
@@ -29,7 +25,7 @@ CLIENT_FIELDS = [
     ("Phone", "Phone Number", True),
 ]
 
-# Treeview columns (key, heading, width)
+# (key, heading, width)
 CLIENT_COLUMNS = [
     ("ID", "ID", 50),
     ("Name", "Name", 140),
@@ -46,14 +42,11 @@ class ClientTab:
     """Client record management tab with form and data table."""
 
     def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
-        """Initialise the client tab inside the given parent frame."""
-
         self.parent = parent
         self.records = records
         self.field_vars: Dict[str, tk.StringVar] = {}
         self.selected_id = None
 
-        # Layout: form on top, table below
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(1, weight=1)
 
@@ -61,22 +54,17 @@ class ClientTab:
         self._build_table(parent)
         self.refresh_table()
 
-    # -- Form ----------------------------------------------------------
-
     def _build_form(self, parent: ttk.Frame) -> None:
-        """Build the client input form with a two-column grid layout."""
-
         form_wrapper = ttk.Frame(parent, style="TFrame")
         form_wrapper.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
         form_wrapper.columnconfigure(1, weight=1)
         form_wrapper.columnconfigure(3, weight=1)
 
-        # Title row
         ttk.Label(
             form_wrapper, text="Client Details", style="Title.TLabel"
         ).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 12))
 
-        # Lay fields in two columns
+        # lay fields in two columns, alternating left/right
         row = 1
         col_offset = 0
         for i, (key, label, required) in enumerate(CLIENT_FIELDS):
@@ -94,18 +82,16 @@ class ClientTab:
                 sticky="ew", padx=(0, 20), pady=4,
             )
 
-            # Alternate between left (0,1) and right (2,3) columns
             if col_offset == 0:
                 col_offset = 2
             else:
                 col_offset = 0
                 row += 1
 
-        # If we ended on the right column, move to next row
         if col_offset == 2:
             row += 1
 
-        # Search bar
+        # search bar
         search_frame = ttk.Frame(form_wrapper, style="TFrame")
         search_frame.grid(
             row=row, column=0, columnspan=4, sticky="ew", pady=(12, 0)
@@ -132,7 +118,7 @@ class ClientTab:
 
         row += 1
 
-        # Action buttons
+        # action buttons
         btn_frame = ttk.Frame(form_wrapper, style="TFrame")
         btn_frame.grid(
             row=row, column=0, columnspan=4, sticky="e", pady=(12, 0)
@@ -158,11 +144,7 @@ class ClientTab:
             command=self._clear_form,
         ).grid(row=0, column=3)
 
-    # -- Table ---------------------------------------------------------
-
     def _build_table(self, parent: ttk.Frame) -> None:
-        """Build the Treeview table for displaying client records."""
-
         table_frame = ttk.Frame(parent, style="TFrame")
         table_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
         table_frame.columnconfigure(0, weight=1)
@@ -189,14 +171,9 @@ class ClientTab:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-        # Populate form when a row is selected
         self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
 
-    # -- Actions -------------------------------------------------------
-
     def _on_save(self) -> None:
-        """Validate and save a new client record."""
-
         values = {k: v.get().strip() for k, v in self.field_vars.items()}
 
         valid, msg = validate_client(
@@ -220,8 +197,6 @@ class ClientTab:
         self.refresh_table()
 
     def _on_update(self) -> None:
-        """Update the currently selected client record."""
-
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to update.")
             return
@@ -241,8 +216,6 @@ class ClientTab:
         self.refresh_table()
 
     def _on_delete(self) -> None:
-        """Delete the currently selected client record after confirmation."""
-
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to delete.")
             return
@@ -257,8 +230,6 @@ class ClientTab:
             self.refresh_table()
 
     def _on_search(self) -> None:
-        """Filter the table to show matching client records."""
-
         term = self.search_var.get().strip()
         if not term:
             self.refresh_table()
@@ -268,8 +239,6 @@ class ClientTab:
         self._populate_table(results)
 
     def _on_row_select(self, event) -> None:
-        """Populate the form fields from the selected Treeview row."""
-
         selection = self.tree.selection()
         if not selection:
             return
@@ -278,33 +247,23 @@ class ClientTab:
         values = item["values"]
         col_keys = [c[0] for c in CLIENT_COLUMNS]
 
-        # Map column values back to a dict
         row_data = dict(zip(col_keys, values))
         self.selected_id = row_data.get("ID")
 
-        # Fill form fields
         for key, var in self.field_vars.items():
             var.set(str(row_data.get(key, "")))
 
-    # -- Helpers -------------------------------------------------------
-
     def _clear_form(self) -> None:
-        """Clear all form fields and reset selection state."""
-
         self.selected_id = None
         for var in self.field_vars.values():
             var.set("")
         self.search_var.set("")
 
     def refresh_table(self) -> None:
-        """Reload the table with all client records."""
-
         clients = get_clients(self.records)
         self._populate_table(clients)
 
     def _populate_table(self, data: List[Dict]) -> None:
-        """Clear and repopulate the Treeview with the given records."""
-
         self.tree.delete(*self.tree.get_children())
         col_keys = [c[0] for c in CLIENT_COLUMNS]
 
