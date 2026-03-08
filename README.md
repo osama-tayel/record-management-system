@@ -37,11 +37,13 @@ record-management-system/
 │   ├── models/
 │   │   ├── client.py        # Client data model
 │   │   ├── airline.py       # Airline data model
-│   │   └── flight.py        # Flight data model
+│   │   ├── flight.py        # Flight data model
+│   │   └── id_generator.py  # Auto-increment ID utility
 │   ├── storage/
 │   │   └── json_storage.py  # JSON file persistence
 │   └── gui/
 │       ├── app_window.py    # Main window with tabbed navigation
+│       ├── theme.py         # ttk colour and font styling
 │       ├── client_tab.py    # Client form + table
 │       ├── airline_tab.py   # Airline form + table
 │       └── flight_tab.py    # Flight form + table
@@ -76,7 +78,7 @@ python -m unittest discover -s tests
 
 | Name | Role |
 |------|------|
-| Ahmed Tayel | Project Manager |
+| Ahmed Tayel | Project Manager & Designer |
 | Christopher Lloyd | Engineer |
 | Fouzia Farqan | Engineer |
 | Chadé Smith | Designer |
