@@ -250,8 +250,16 @@ class ClientTab:
         row_data = dict(zip(col_keys, values))
         self.selected_id = row_data.get("ID")
 
+        # Look up the full record so fields not shown in the table
+        # (Address Line 2, Address Line 3) are populated correctly.
+        full_record = {}
+        for record in self.records:
+            if record.get("ID") == self.selected_id:
+                full_record = record
+                break
+
         for key, var in self.field_vars.items():
-            var.set(str(row_data.get(key, "")))
+            var.set(str(full_record.get(key, "")))
 
     def _clear_form(self) -> None:
         self.selected_id = None
