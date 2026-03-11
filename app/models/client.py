@@ -1,16 +1,20 @@
-"""Client model representing a travel agent customer.
-Provides CRUD operations for client records in the
-record management system.
+"""
+Client model for the Travel Record Management System.
+
+Provides CRUD and search operations for client records.
 """
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
-# Constant used to avoid repeating the string "Client"
+# Constant to avoid repeating the string literal
 CLIENT_TYPE = "Client"
+
+# Type alias for record dictionaries
+Record = Dict[str, Any]
 
 
 def create_client(
-    client_id: str,
+    client_id: int,
     name: str,
     addr1: str,
     addr2: str,
@@ -20,8 +24,8 @@ def create_client(
     zip_code: str,
     country: str,
     phone: str
-) -> Dict[str, str]:
-    """Create and return a client record dictionary."""
+) -> Record:
+    """Create and return a client record."""
 
     return {
         "ID": client_id,
@@ -47,31 +51,37 @@ def validate_client(
 ) -> Tuple[bool, str]:
     """Validate required client fields."""
 
-    # Ensure required fields are not empty or whitespace
-    if not name or not name.strip():
+    # Trim whitespace once
+    name = name.strip()
+    addr1 = addr1.strip()
+    city = city.strip()
+    country = country.strip()
+    phone = phone.strip()
+
+    if not name:
         return False, "Name is required."
-    if not addr1 or not addr1.strip():
+    if not addr1:
         return False, "Address Line 1 is required."
-    if not city or not city.strip():
+    if not city:
         return False, "City is required."
-    if not country or not country.strip():
+    if not country:
         return False, "Country is required."
-    if not phone or not phone.strip():
+    if not phone:
         return False, "Phone is required."
 
     return True, ""
 
 
-def get_clients(records: List[Dict]) -> List[Dict]:
-    """Return all records where Type is 'Client'."""
+def get_clients(records: List[Record]) -> List[Record]:
+    """Return all client records."""
 
     return [record for record in records if record.get("Type") == CLIENT_TYPE]
 
 
 def update_client(
-    records: List[Dict],
-    client_id: str,
-    updated_data: Dict
+    records: List[Record],
+    client_id: int,
+    updated_data: Record
 ) -> bool:
     """Update a client record by ID."""
 
@@ -83,11 +93,9 @@ def update_client(
     return False
 
 
-def delete_client(records: List[Dict], client_id: str) -> bool:
+def delete_client(records: List[Record], client_id: int) -> bool:
     """Delete a client record by ID."""
 
-    # enumerate() provides both index and record
-    # which allows safe removal using pop()
     for i, record in enumerate(records):
         if record.get("ID") == client_id and record.get("Type") == CLIENT_TYPE:
             records.pop(i)
@@ -96,23 +104,13 @@ def delete_client(records: List[Dict], client_id: str) -> bool:
     return False
 
 
-def search_clients(records: List[Dict], search_term: str) -> List[Dict]:
+def search_clients(records: List[Record], search_term: str) -> List[Record]:
     """Search client records by any field (case-insensitive)."""
 
-    results: List[Dict] = []
     search_term = search_term.lower()
 
-    for record in records:
-        if record.get("Type") == CLIENT_TYPE:
-
-            # Check every value in the record
-            for value in record.values():
-
-                # Convert value to string because some fields
-                # (like zip codes or IDs) may not be strings.
-                # This ensures the search works for all data types.
-                if search_term in str(value).lower():
-                    results.append(record)
-                    break  # stop once a match is found
-
-    return results
+    return [
+        record for record in records
+        if record.get("Type") == CLIENT_TYPE
+        and any(search_term in str(value).lower() for value in record.values())
+    ]
