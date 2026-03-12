@@ -17,8 +17,19 @@ FONT_HEADING = ("Segoe UI", 16, "bold")
 
 
 def apply_theme(root: tk.Tk) -> ttk.Style:
-    """Set up the clam theme with a few colour and font overrides."""
+    """Set up the clam theme with colour and font overrides.
 
+    Configures ttk widget styles with custom colours, fonts, and behaviours
+    for the application. Uses the 'clam' theme as a foundation and applies
+    custom styling for frames, labels, buttons, entries, notebook tabs,
+    and treeviews.
+
+    Args:
+        root: The root Tkinter window to apply the theme to.
+
+    Returns:
+        Configured ttk.Style instance.
+    """
     style = ttk.Style(root)
     style.theme_use("clam")
 

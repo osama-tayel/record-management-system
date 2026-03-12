@@ -1,6 +1,7 @@
 """Flight model representing a scheduled flight.
+
 Provides CRUD operations and validation for flight data.
-Dates are stored as ISO strings (YYYY-MM-DD) to avoid JSON serialization issues.
+Dates are stored as ISO strings (YYYY-MM-DD) to avoid JSON serialisation issues.
 """
 
 # typing module helps describe expected data structures (for readability and IDE support)
@@ -8,7 +9,6 @@ from typing import List, Dict, Tuple, Any
 
 # used to validate ISO date strings
 from datetime import date
-
 
 # constant used to identify flight records
 FLIGHT_TYPE = "Flight"
@@ -22,10 +22,19 @@ def create_flight(
     start_city: str,
     end_city: str
 ) -> Dict[str, Any]:
-    """
-    Create and return a flight record dictionary.
-    """
+    """Create and return a flight record dictionary.
 
+    Args:
+        flight_id: Unique identifier for the flight.
+        client_id: ID of the client associated with this flight.
+        airline_id: ID of the airline operating this flight.
+        flight_date: Flight date in ISO format (YYYY-MM-DD).
+        start_city: Departure city.
+        end_city: Arrival city.
+
+    Returns:
+        Dictionary containing the complete flight record.
+    """
     return {
         "ID": flight_id,
         "Type": FLIGHT_TYPE,
@@ -44,10 +53,19 @@ def validate_flight(
     start_city: str,
     end_city: str
 ) -> Tuple[bool, str]:
-    """
-    Validate required fields and data types.
-    """
+    """Validate required fields and data types.
 
+    Args:
+        client_id: Client ID to validate (must be integer).
+        airline_id: Airline ID to validate (must be integer).
+        flight_date: Flight date string to validate (must be ISO format).
+        start_city: Departure city to validate.
+        end_city: Arrival city to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message). If validation passes, returns
+        (True, ""). If validation fails, returns (False, error_message).
+    """
     # Client_ID must be an integer
     if not isinstance(client_id, int):
         return False, "Client_ID must be an integer."
@@ -73,10 +91,14 @@ def validate_flight(
 
 
 def get_flights(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Return all records where Type is 'Flight'.
-    """
+    """Return all records where Type is 'Flight'.
 
+    Args:
+        records: List of all record dictionaries.
+
+    Returns:
+        Filtered list containing only flight records.
+    """
     return [record for record in records if record.get("Type") == FLIGHT_TYPE]
 
 
@@ -85,10 +107,16 @@ def update_flight(
     flight_id: int,
     updated_data: Dict[str, Any]
 ) -> bool:
-    """
-    Update a flight record by ID.
-    """
+    """Update a flight record by ID.
 
+    Args:
+        records: List of all record dictionaries.
+        flight_id: ID of the flight record to update.
+        updated_data: Dictionary containing fields to update.
+
+    Returns:
+        True if the record was found and updated, False otherwise.
+    """
     for record in records:
         if record.get("ID") == flight_id and record.get("Type") == FLIGHT_TYPE:
             record.update(updated_data)
@@ -98,10 +126,15 @@ def update_flight(
 
 
 def delete_flight(records: List[Dict[str, Any]], flight_id: int) -> bool:
-    """
-    Delete a flight record by ID.
-    """
+    """Delete a flight record by ID.
 
+    Args:
+        records: List of all record dictionaries.
+        flight_id: ID of the flight record to delete.
+
+    Returns:
+        True if the record was found and deleted, False otherwise.
+    """
     # enumerate allows us to access index while looping
     for i, record in enumerate(records):
         if record.get("ID") == flight_id and record.get("Type") == FLIGHT_TYPE:
@@ -115,10 +148,15 @@ def search_flights(
     records: List[Dict[str, Any]],
     search_term: str
 ) -> List[Dict[str, Any]]:
-    """
-    Search flight records by any field (case-insensitive).
-    """
+    """Search flight records by any field (case-insensitive).
 
+    Args:
+        records: List of all record dictionaries.
+        search_term: String to search for across all fields.
+
+    Returns:
+        List of flight records containing the search term in any field.
+    """
     # convert search term to lowercase for case-insensitive comparison
     search_term = str(search_term).lower()
 
