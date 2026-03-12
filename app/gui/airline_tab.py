@@ -8,7 +8,6 @@ from app.models.airline import get_airlines
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
 
-
 AIRLINE_COLUMNS = [
     ("ID", "ID", 80),
     ("Company Name", "Company Name", 300),
@@ -16,10 +15,32 @@ AIRLINE_COLUMNS = [
 
 
 class AirlineTab:
-    """Airline record management tab."""
+    """Airline record management tab.
+
+    Provides a GUI interface for managing airline records with form inputs,
+    search functionality, and a sortable data table. Handles all CRUD
+    operations and persists changes to storage.
+
+    Attributes:
+        parent: Parent ttk.Frame containing this tab.
+        records: Shared list of all record dictionaries.
+        storage: StorageManager instance for data persistence.
+        field_vars: Dictionary mapping field names to StringVar instances.
+        selected_record: Currently selected airline record or None.
+        search_var: StringVar for the search input field.
+        tree: ttk.Treeview widget displaying airline records.
+        entry_name: Entry widget for company name input.
+        update_btn: Button for updating selected record.
+        delete_btn: Button for deleting selected record.
+    """
 
     def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
+        """Initialise the airline tab interface.
 
+        Args:
+            parent: Parent ttk.Frame to contain this tab's widgets.
+            records: Shared list of all record dictionaries.
+        """
         self.parent = parent
         self.records = records
         self.storage = StorageManager()
@@ -41,7 +62,14 @@ class AirlineTab:
     # -----------------------------
 
     def _build_form(self, parent: ttk.Frame) -> None:
+        """Build the airline form with input field and action buttons.
 
+        Creates a form with company name entry field and buttons for
+        Add, Update, Delete, and Clear operations.
+
+        Args:
+            parent: Parent frame to contain the form widgets.
+        """
         form = ttk.Frame(parent)
         form.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
         form.columnconfigure(1, weight=1)
@@ -96,7 +124,14 @@ class AirlineTab:
     # -----------------------------
 
     def _build_search(self, parent: ttk.Frame) -> None:
+        """Build the search input field.
 
+        Creates a search bar that filters the airline table as the user types.
+        Uses trace_add to trigger search on every keystroke.
+
+        Args:
+            parent: Parent frame to contain the search widget.
+        """
         search_frame = ttk.Frame(parent)
         search_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
 
@@ -118,7 +153,14 @@ class AirlineTab:
     # -----------------------------
 
     def _build_table(self, parent: ttk.Frame) -> None:
+        """Build the airline data table with vertical scrollbar.
 
+        Creates a ttk.Treeview widget displaying airline records with
+        sortable columns and row selection functionality.
+
+        Args:
+            parent: Parent frame to contain the table widget.
+        """
         table_frame = ttk.Frame(parent)
         table_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 16))
 
@@ -160,13 +202,16 @@ class AirlineTab:
     # -----------------------------
 
     def refresh_table(self) -> None:
+        """Refresh the table to display all airline records.
 
+        Clears the current table contents and repopulates with all
+        airline records from the shared records list.
+        """
         self.tree.delete(*self.tree.get_children())
 
         col_keys = [c[0] for c in AIRLINE_COLUMNS]
 
         for record in get_airlines(self.records):
-
             self.tree.insert(
                 "",
                 "end",
@@ -178,7 +223,14 @@ class AirlineTab:
     # -----------------------------
 
     def search_airlines(self, *args) -> None:
+        """Search airline records and update table display.
 
+        Filters airline records by company name matching the search query
+        (case-insensitive) and updates the table to show only matching records.
+
+        Args:
+            *args: Variable arguments from StringVar trace callback (unused).
+        """
         query = self.search_var.get().lower()
 
         self.tree.delete(*self.tree.get_children())
@@ -186,11 +238,9 @@ class AirlineTab:
         col_keys = [c[0] for c in AIRLINE_COLUMNS]
 
         for record in get_airlines(self.records):
-
             name = record.get("Company Name", "").lower()
 
             if query in name:
-
                 self.tree.insert(
                     "",
                     "end",
@@ -202,7 +252,15 @@ class AirlineTab:
     # -----------------------------
 
     def sort_column(self, col, reverse):
+        """Sort table by column in ascending or descending order.
 
+        Sorts the table entries by the specified column and updates
+        the column heading command to toggle sort direction on next click.
+
+        Args:
+            col: Column key to sort by.
+            reverse: True for descending order, False for ascending.
+        """
         data = [(self.tree.set(k, col), k) for k in self.tree.get_children("")]
 
         data.sort(reverse=reverse)
@@ -217,7 +275,14 @@ class AirlineTab:
     # -----------------------------
 
     def on_row_select(self, event) -> None:
+        """Handle row selection to populate form fields.
 
+        When a row is selected in the table, populates the form field with
+        the selected airline's data and enables Update and Delete buttons.
+
+        Args:
+            event: TreeviewSelect event (unused).
+        """
         selected = self.tree.selection()
 
         if not selected:
@@ -228,14 +293,11 @@ class AirlineTab:
         record_id = int(values[0])
 
         for record in self.records:
-
             if record.get("ID") == record_id and record.get("Type") == "Airline":
-
                 self.selected_record = record
                 break
 
         if self.selected_record:
-
             self.field_vars["Company Name"].set(
                 self.selected_record.get("Company Name", "")
             )
@@ -248,7 +310,12 @@ class AirlineTab:
     # -----------------------------
 
     def add_airline(self) -> None:
+        """Add a new airline record.
 
+        Validates the company name, checks for duplicates, generates a new ID,
+        creates the record, saves to storage, and refreshes the table.
+        Shows appropriate error messages if validation fails.
+        """
         name = self.field_vars["Company Name"].get().strip()
 
         if not name:
@@ -256,9 +323,7 @@ class AirlineTab:
             return
 
         for record in get_airlines(self.records):
-
             if record.get("Company Name", "").lower() == name.lower():
-
                 messagebox.showerror("Duplicate", "Airline already exists.")
                 return
 
@@ -283,7 +348,12 @@ class AirlineTab:
     # -----------------------------
 
     def update_airline(self) -> None:
+        """Update the selected airline record.
 
+        Validates that a record is selected and the company name is provided,
+        updates the record, saves to storage, and refreshes the table.
+        Shows appropriate warning messages if validation fails.
+        """
         if not self.selected_record:
             messagebox.showwarning("Selection", "Select an airline first.")
             return
@@ -297,9 +367,7 @@ class AirlineTab:
         record_id = self.selected_record["ID"]
 
         for record in self.records:
-
             if record.get("ID") == record_id and record.get("Type") == "Airline":
-
                 record["Company Name"] = name
                 break
 
@@ -314,7 +382,12 @@ class AirlineTab:
     # -----------------------------
 
     def delete_airline(self) -> None:
+        """Delete the selected airline record.
 
+        Validates that a record is selected, prompts for confirmation,
+        removes the record from the list, saves to storage, and refreshes
+        the table. Shows appropriate warning if no record is selected.
+        """
         if not self.selected_record:
             messagebox.showwarning("Selection", "Select an airline first.")
             return
@@ -332,11 +405,8 @@ class AirlineTab:
         record_id = self.selected_record["ID"]
 
         for record in self.records:
-
             if record.get("ID") == record_id and record.get("Type") == "Airline":
-
                 self.records.remove(record)
-
                 break
 
         self.storage.save(self.records)
@@ -350,7 +420,12 @@ class AirlineTab:
     # -----------------------------
 
     def clear_form(self) -> None:
+        """Clear all form fields and deselect table row.
 
+        Resets the form to its initial state by clearing all field values,
+        deselecting the current record, disabling Update and Delete buttons,
+        clearing the table selection, and setting focus to the name entry field.
+        """
         for var in self.field_vars.values():
             var.set("")
 

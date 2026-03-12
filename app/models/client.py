@@ -6,10 +6,10 @@ Provides CRUD and search operations for client records.
 
 from typing import List, Dict, Tuple, Any
 
-# Constant to avoid repeating the string literal
+# Constant to avoid repeating the string literal                                                
 CLIENT_TYPE = "Client"
 
-# Type alias for record dictionaries
+# Type alias for record dictionaries                                   
 Record = Dict[str, Any]
 
 
@@ -25,8 +25,23 @@ def create_client(
     country: str,
     phone: str
 ) -> Record:
-    """Create and return a client record."""
+    """Create and return a client record.
 
+    Args:
+        client_id: Unique identifier for the client.
+        name: Client's full name.
+        addr1: Primary address line.
+        addr2: Secondary address line (optional).
+        addr3: Tertiary address line (optional).
+        city: City name.
+        state: State or province (optional).
+        zip_code: Postal or ZIP code (optional).
+        country: Country name.
+        phone: Phone number.
+
+    Returns:
+        Dictionary containing the complete client record.
+    """
     return {
         "ID": client_id,
         "Type": CLIENT_TYPE,
@@ -49,9 +64,19 @@ def validate_client(
     country: str,
     phone: str
 ) -> Tuple[bool, str]:
-    """Validate required client fields."""
+    """Validate required client fields.
 
-    # Trim whitespace once
+    Args:
+        name: Client's full name.
+        addr1: Primary address line.
+        city: City name.
+        country: Country name.
+        phone: Phone number.
+
+    Returns:
+        Tuple of (is_valid, error_message). If validation passes, returns
+        (True, ""). If validation fails, returns (False, error_message).
+    """
     name = name.strip()
     addr1 = addr1.strip()
     city = city.strip()
@@ -73,8 +98,14 @@ def validate_client(
 
 
 def get_clients(records: List[Record]) -> List[Record]:
-    """Return all client records."""
+    """Return all client records.
 
+    Args:
+        records: List of all record dictionaries.
+
+    Returns:
+        Filtered list containing only client records.
+    """
     return [record for record in records if record.get("Type") == CLIENT_TYPE]
 
 
@@ -83,8 +114,16 @@ def update_client(
     client_id: int,
     updated_data: Record
 ) -> bool:
-    """Update a client record by ID."""
+    """Update a client record by ID.
 
+    Args:
+        records: List of all record dictionaries.
+        client_id: ID of the client record to update.
+        updated_data: Dictionary containing fields to update.
+
+    Returns:
+        True if the record was found and updated, False otherwise.
+    """
     for record in records:
         if record.get("ID") == client_id and record.get("Type") == CLIENT_TYPE:
             record.update(updated_data)
@@ -94,8 +133,15 @@ def update_client(
 
 
 def delete_client(records: List[Record], client_id: int) -> bool:
-    """Delete a client record by ID."""
+    """Delete a client record by ID.
 
+    Args:
+        records: List of all record dictionaries.
+        client_id: ID of the client record to delete.
+
+    Returns:
+        True if the record was found and deleted, False otherwise.
+    """
     for i, record in enumerate(records):
         if record.get("ID") == client_id and record.get("Type") == CLIENT_TYPE:
             records.pop(i)
@@ -105,8 +151,15 @@ def delete_client(records: List[Record], client_id: int) -> bool:
 
 
 def search_clients(records: List[Record], search_term: str) -> List[Record]:
-    """Search client records by any field (case-insensitive)."""
+    """Search client records by any field (case-insensitive).
 
+    Args:
+        records: List of all record dictionaries.
+        search_term: String to search for across all fields.
+
+    Returns:
+        List of client records containing the search term in any field.
+    """
     search_term = search_term.lower()
 
     return [

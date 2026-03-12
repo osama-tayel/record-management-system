@@ -11,7 +11,6 @@ from app.models.client import (
 )
 from app.models.id_generator import get_next_id
 
-
 # (dict_key, label_text, required)
 CLIENT_FIELDS = [
     ("Name", "Name", True),
@@ -39,9 +38,28 @@ CLIENT_COLUMNS = [
 
 
 class ClientTab:
-    """Client record management tab with form and data table."""
+    """Client record management tab with form and data table.
+
+    Provides a complete GUI interface for managing client records including
+    a multi-field form, search functionality, and a sortable data table.
+    Handles all CRUD operations for client data.
+
+    Attributes:
+        parent: Parent ttk.Frame containing this tab.
+        records: Shared list of all record dictionaries.
+        field_vars: Dictionary mapping field names to StringVar instances.
+        selected_id: ID of currently selected client record or None.
+        search_var: StringVar for the search input field.
+        tree: ttk.Treeview widget displaying client records.
+    """
 
     def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
+        """Initialise the client tab interface.
+
+        Args:
+            parent: Parent ttk.Frame to contain this tab's widgets.
+            records: Shared list of all record dictionaries.
+        """
         self.parent = parent
         self.records = records
         self.field_vars: Dict[str, tk.StringVar] = {}
@@ -55,6 +73,15 @@ class ClientTab:
         self.refresh_table()
 
     def _build_form(self, parent: ttk.Frame) -> None:
+        """Build the client form with input fields and action buttons.
+
+        Creates a two-column form layout with entry fields for all client
+        attributes, a search bar, and buttons for Save, Update, Delete,
+        and Clear operations.
+
+        Args:
+            parent: Parent frame to contain the form widgets.
+        """
         form_wrapper = ttk.Frame(parent, style="TFrame")
         form_wrapper.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
         form_wrapper.columnconfigure(1, weight=1)
@@ -145,6 +172,14 @@ class ClientTab:
         ).grid(row=0, column=3)
 
     def _build_table(self, parent: ttk.Frame) -> None:
+        """Build the client data table with vertical scrollbar.
+
+        Creates a ttk.Treeview widget displaying client records with
+        row selection functionality and a vertical scrollbar.
+
+        Args:
+            parent: Parent frame to contain the table widget.
+        """
         table_frame = ttk.Frame(parent, style="TFrame")
         table_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
         table_frame.columnconfigure(0, weight=1)
@@ -174,6 +209,12 @@ class ClientTab:
         self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
 
     def _on_save(self) -> None:
+        """Save a new client record with validation.
+
+        Validates form inputs, generates a new ID, creates the client record,
+        appends to records list, clears the form, and refreshes the table.
+        Shows error message if validation fails.
+        """
         values = {k: v.get().strip() for k, v in self.field_vars.items()}
 
         valid, msg = validate_client(
@@ -197,6 +238,12 @@ class ClientTab:
         self.refresh_table()
 
     def _on_update(self) -> None:
+        """Update an existing client record with validation.
+
+        Validates that a record is selected and form inputs are valid,
+        updates the record, clears the form, and refreshes the table.
+        Shows warning if no record selected or error if validation fails.
+        """
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to update.")
             return
@@ -216,6 +263,12 @@ class ClientTab:
         self.refresh_table()
 
     def _on_delete(self) -> None:
+        """Delete a client record with confirmation.
+
+        Validates that a record is selected, prompts for confirmation,
+        deletes the record, clears the form, and refreshes the table.
+        Shows warning if no record is selected.
+        """
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to delete.")
             return
@@ -230,6 +283,12 @@ class ClientTab:
             self.refresh_table()
 
     def _on_search(self) -> None:
+        """Search client records by any field.
+
+        Executes case-insensitive search across all client fields using
+        the search term and updates the table to show matching records.
+        If search term is empty, shows all records.
+        """
         term = self.search_var.get().strip()
         if not term:
             self.refresh_table()
@@ -239,6 +298,14 @@ class ClientTab:
         self._populate_table(results)
 
     def _on_row_select(self, event) -> None:
+        """Handle row selection to populate form fields.
+
+        When a row is selected in the table, looks up the full record
+        and populates all form fields including those not shown in the table.
+
+        Args:
+            event: TreeviewSelect event (unused).
+        """
         selection = self.tree.selection()
         if not selection:
             return
@@ -262,16 +329,33 @@ class ClientTab:
             var.set(str(full_record.get(key, "")))
 
     def _clear_form(self) -> None:
+        """Clear all form fields and deselect table row.
+
+        Resets the selected_id, clears all field values and the search field.
+        """
         self.selected_id = None
         for var in self.field_vars.values():
             var.set("")
         self.search_var.set("")
 
     def refresh_table(self) -> None:
+        """Refresh the table to show all client records.
+
+        Retrieves all client records from the shared records list and
+        populates the table display.
+        """
         clients = get_clients(self.records)
         self._populate_table(clients)
 
     def _populate_table(self, data: List[Dict]) -> None:
+        """Populate the table with client data.
+
+        Clears the current table contents and inserts rows for each
+        client record in the provided data list.
+
+        Args:
+            data: List of client record dictionaries to display.
+        """
         self.tree.delete(*self.tree.get_children())
         col_keys = [c[0] for c in CLIENT_COLUMNS]
 

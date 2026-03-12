@@ -12,7 +12,6 @@ from app.models.flight import (
 )
 from app.models.id_generator import get_next_id
 
-
 # (key, heading, width)
 FLIGHT_COLUMNS = [
     ("ID", "ID", 50),
@@ -25,9 +24,28 @@ FLIGHT_COLUMNS = [
 
 
 class FlightTab:
-    """Flight record management tab with full CRUD operations."""
+    """Flight record management tab with full CRUD operations.
+
+    Provides a GUI interface for managing flight records with form inputs,
+    search functionality, and a sortable data table. Includes comprehensive
+    validation for date formats and foreign key IDs.
+
+    Attributes:
+        parent: Parent ttk.Frame containing this tab.
+        records: Shared list of all record dictionaries.
+        field_vars: Dictionary mapping field names to StringVar instances.
+        selected_id: ID of currently selected flight record or None.
+        search_var: StringVar for the search input field.
+        tree: ttk.Treeview widget displaying flight records.
+    """
 
     def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
+        """Initialise the flight tab interface.
+
+        Args:
+            parent: Parent ttk.Frame to contain this tab's widgets.
+            records: Shared list of all record dictionaries.
+        """
         self.parent = parent
         self.records = records
         self.field_vars: Dict[str, tk.StringVar] = {}
@@ -41,7 +59,15 @@ class FlightTab:
         self.refresh_table()
 
     def _build_form(self, parent: ttk.Frame) -> None:
-        """Build the flight form with fields and buttons."""
+        """Build the flight form with fields and buttons.
+
+        Creates a two-column form layout with entry fields for flight
+        attributes, a search bar, and buttons for Save, Update, Delete,
+        and Clear operations.
+
+        Args:
+            parent: Parent frame to contain the form widgets.
+        """
         form_wrapper = ttk.Frame(parent, style="TFrame")
         form_wrapper.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
         form_wrapper.columnconfigure(1, weight=1)
@@ -135,7 +161,14 @@ class FlightTab:
         ).grid(row=0, column=3)
 
     def _build_table(self, parent: ttk.Frame) -> None:
-        """Build the flight data table with sorting."""
+        """Build the flight data table with sorting.
+
+        Creates a ttk.Treeview widget displaying flight records with
+        sortable columns, row selection functionality, and a vertical scrollbar.
+
+        Args:
+            parent: Parent frame to contain the table widget.
+        """
         table_frame = ttk.Frame(parent, style="TFrame")
         table_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
         table_frame.columnconfigure(0, weight=1)
@@ -170,7 +203,13 @@ class FlightTab:
         self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
 
     def _on_save(self) -> None:
-        """Save a new flight record with validation."""
+        """Save a new flight record with validation.
+
+        Validates Client_ID and Airline_ID as integers, validates date format
+        as ISO YYYY-MM-DD, validates other required fields, generates a new ID,
+        creates the flight record, and refreshes the table. Shows error messages
+        if validation fails.
+        """
         # Get form values
         client_id_str = self.field_vars["Client_ID"].get().strip()
         airline_id_str = self.field_vars["Airline_ID"].get().strip()
@@ -228,7 +267,13 @@ class FlightTab:
         messagebox.showinfo("Success", "Flight record saved successfully.")
 
     def _on_update(self) -> None:
-        """Update an existing flight record with validation."""
+        """Update an existing flight record with validation.
+
+        Validates that a record is selected, validates Client_ID and Airline_ID
+        as integers, validates date format, validates other required fields,
+        updates the record, and refreshes the table. Shows warnings and errors
+        if validation fails.
+        """
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to update.")
             return
@@ -292,7 +337,12 @@ class FlightTab:
         messagebox.showinfo("Success", "Flight record updated successfully.")
 
     def _on_delete(self) -> None:
-        """Delete a flight record with confirmation."""
+        """Delete a flight record with confirmation.
+
+        Validates that a record is selected, prompts for confirmation,
+        deletes the record, clears the form, and refreshes the table.
+        Shows warning if no record is selected.
+        """
         if self.selected_id is None:
             messagebox.showwarning("No Selection", "Select a record to delete.")
             return
@@ -308,7 +358,12 @@ class FlightTab:
             messagebox.showinfo("Success", "Flight record deleted.")
 
     def _on_search(self) -> None:
-        """Search flight records by any field."""
+        """Search flight records by any field.
+
+        Executes case-insensitive search across all flight fields using
+        the search term and updates the table to show matching records.
+        If search term is empty, shows all records.
+        """
         term = self.search_var.get().strip()
         if not term:
             self.refresh_table()
@@ -318,7 +373,14 @@ class FlightTab:
         self._populate_table(results)
 
     def _on_row_select(self, event) -> None:
-        """Handle row selection to populate form fields."""
+        """Handle row selection to populate form fields.
+
+        When a row is selected in the table, extracts the flight data
+        and populates all form fields with the selected flight's values.
+
+        Args:
+            event: TreeviewSelect event (unused).
+        """
         selection = self.tree.selection()
         if not selection:
             return
@@ -335,19 +397,33 @@ class FlightTab:
             self.field_vars[key].set(str(row_data.get(key, "")))
 
     def _clear_form(self) -> None:
-        """Clear all form fields and deselect table row."""
+        """Clear all form fields and deselect table row.
+
+        Resets the selected_id, clears all field values and the search field.
+        """
         self.selected_id = None
         for var in self.field_vars.values():
             var.set("")
         self.search_var.set("")
 
     def refresh_table(self) -> None:
-        """Refresh the table to show all flight records."""
+        """Refresh the table to show all flight records.
+
+        Retrieves all flight records from the shared records list and
+        populates the table display.
+        """
         flights = get_flights(self.records)
         self._populate_table(flights)
 
     def _populate_table(self, data: List[Dict]) -> None:
-        """Populate the table with flight data."""
+        """Populate the table with flight data.
+
+        Clears the current table contents and inserts rows for each
+        flight record in the provided data list.
+
+        Args:
+            data: List of flight record dictionaries to display.
+        """
         self.tree.delete(*self.tree.get_children())
         col_keys = [c[0] for c in FLIGHT_COLUMNS]
 
@@ -356,7 +432,16 @@ class FlightTab:
             self.tree.insert("", "end", values=row_values)
 
     def _sort_column(self, col, reverse):
-        """Sort table by column (ascending/descending)."""
+        """Sort table by column (ascending/descending).
+
+        Sorts the table entries by the specified column, attempting numeric
+        sort for ID columns and falling back to string sort otherwise.
+        Updates the column heading command to toggle sort direction on next click.
+
+        Args:
+            col: Column key to sort by.
+            reverse: True for descending order, False for ascending.
+        """
         data = [(self.tree.set(k, col), k) for k in self.tree.get_children("")]
 
         # Try numeric sort for ID columns, fallback to string sort
