@@ -76,7 +76,7 @@ class AppWindow:
         self.root.rowconfigure(1, weight=1)
 
         client_frame = ttk.Frame(self.notebook, style="TFrame")
-        self.client_tab = ClientTab(client_frame, self.records)
+        self.client_tab = ClientTab(client_frame, self.records, self.storage)
         self.notebook.add(client_frame, text=" Clients ")
 
         airline_frame = ttk.Frame(self.notebook, style="TFrame")
@@ -84,7 +84,7 @@ class AppWindow:
         self.notebook.add(airline_frame, text=" Airlines ")
 
         flight_frame = ttk.Frame(self.notebook, style="TFrame")
-        self.flight_tab = FlightTab(flight_frame, self.records)
+        self.flight_tab = FlightTab(flight_frame, self.records, self.storage)
         self.notebook.add(flight_frame, text=" Flights ")
 
     def _on_close(self) -> None:

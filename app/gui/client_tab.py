@@ -10,6 +10,7 @@ from app.models.client import (
     update_client, delete_client, search_clients,
 )
 from app.models.id_generator import get_next_id
+from app.storage.json_storage import StorageManager
 
 # (dict_key, label_text, required)
 CLIENT_FIELDS = [
@@ -53,15 +54,20 @@ class ClientTab:
         tree: ttk.Treeview widget displaying client records.
     """
 
-    def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
+    def __init__(
+        self, parent: ttk.Frame, records: List[Dict],
+        storage: StorageManager = None
+    ) -> None:
         """Initialise the client tab interface.
 
         Args:
             parent: Parent ttk.Frame to contain this tab's widgets.
             records: Shared list of all record dictionaries.
+            storage: StorageManager instance for immediate persistence.
         """
         self.parent = parent
         self.records = records
+        self.storage = storage
         self.field_vars: Dict[str, tk.StringVar] = {}
         self.selected_id = None
 
@@ -211,10 +217,18 @@ class ClientTab:
     def _on_save(self) -> None:
         """Save a new client record with validation.
 
-        Validates form inputs, generates a new ID, creates the client record,
-        appends to records list, clears the form, and refreshes the table.
-        Shows error message if validation fails.
+        Validates form inputs, checks for duplicate records, generates a new ID,
+        creates the client record, appends to records list, clears the form,
+        and refreshes the table. Shows error message if validation fails.
         """
+        if self.selected_id is not None:
+            messagebox.showwarning(
+                "Record Selected",
+                "A record is currently selected. Use 'Update' to modify it, "
+                "or 'Clear' the form first to add a new record."
+            )
+            return
+
         values = {k: v.get().strip() for k, v in self.field_vars.items()}
 
         valid, msg = validate_client(
@@ -225,6 +239,15 @@ class ClientTab:
             messagebox.showerror("Validation Error", msg)
             return
 
+        for record in get_clients(self.records):
+            if (record.get("Name", "").lower() == values["Name"].lower()
+                    and record.get("Phone", "").lower() == values["Phone"].lower()):
+                messagebox.showerror(
+                    "Duplicate",
+                    "A client with the same name and phone number already exists."
+                )
+                return
+
         new_id = get_next_id(self.records, "Client")
         record = create_client(
             new_id,
@@ -234,6 +257,8 @@ class ClientTab:
             values["Country"], values["Phone"],
         )
         self.records.append(record)
+        if self.storage:
+            self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
 
@@ -259,6 +284,8 @@ class ClientTab:
             return
 
         update_client(self.records, self.selected_id, values)
+        if self.storage:
+            self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
 
@@ -279,6 +306,8 @@ class ClientTab:
         )
         if confirm:
             delete_client(self.records, self.selected_id)
+            if self.storage:
+                self.storage.save(self.records)
             self._clear_form()
             self.refresh_table()
 
