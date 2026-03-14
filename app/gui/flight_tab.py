@@ -10,7 +10,10 @@ from app.models.flight import (
     create_flight, validate_flight, get_flights,
     update_flight, delete_flight, search_flights,
 )
+from app.models.client import get_clients
+from app.models.airline import get_airlines
 from app.models.id_generator import get_next_id
+from app.storage.json_storage import StorageManager
 
 # (key, heading, width)
 FLIGHT_COLUMNS = [
@@ -39,15 +42,20 @@ class FlightTab:
         tree: ttk.Treeview widget displaying flight records.
     """
 
-    def __init__(self, parent: ttk.Frame, records: List[Dict]) -> None:
+    def __init__(
+        self, parent: ttk.Frame, records: List[Dict],
+        storage: StorageManager = None
+    ) -> None:
         """Initialise the flight tab interface.
 
         Args:
             parent: Parent ttk.Frame to contain this tab's widgets.
             records: Shared list of all record dictionaries.
+            storage: StorageManager instance for immediate persistence.
         """
         self.parent = parent
         self.records = records
+        self.storage = storage
         self.field_vars: Dict[str, tk.StringVar] = {}
         self.selected_id = None
 
@@ -205,11 +213,19 @@ class FlightTab:
     def _on_save(self) -> None:
         """Save a new flight record with validation.
 
-        Validates Client_ID and Airline_ID as integers, validates date format
-        as ISO YYYY-MM-DD, validates other required fields, generates a new ID,
-        creates the flight record, and refreshes the table. Shows error messages
-        if validation fails.
+        Validates Client_ID and Airline_ID as integers, checks they reference
+        existing records, validates date format as ISO YYYY-MM-DD, checks for
+        duplicate flights, generates a new ID, creates the flight record,
+        and refreshes the table. Shows error messages if validation fails.
         """
+        if self.selected_id is not None:
+            messagebox.showwarning(
+                "Record Selected",
+                "A record is currently selected. Use 'Update' to modify it, "
+                "or 'Clear' the form first to add a new record."
+            )
+            return
+
         # Get form values
         client_id_str = self.field_vars["Client_ID"].get().strip()
         airline_id_str = self.field_vars["Airline_ID"].get().strip()
@@ -237,6 +253,26 @@ class FlightTab:
             )
             return
 
+        # Validate Client_ID exists
+        client_ids = {r["ID"] for r in get_clients(self.records)}
+        if client_id not in client_ids:
+            messagebox.showerror(
+                "Validation Error",
+                f"Client ID {client_id} does not exist. "
+                "Please enter a valid Client ID from the Clients tab."
+            )
+            return
+
+        # Validate Airline_ID exists
+        airline_ids = {r["ID"] for r in get_airlines(self.records)}
+        if airline_id not in airline_ids:
+            messagebox.showerror(
+                "Validation Error",
+                f"Airline ID {airline_id} does not exist. "
+                "Please enter a valid Airline ID from the Airlines tab."
+            )
+            return
+
         # Validate date format using date.fromisoformat()
         try:
             date.fromisoformat(flight_date)
@@ -255,6 +291,19 @@ class FlightTab:
             messagebox.showerror("Validation Error", msg)
             return
 
+        # Check for duplicate flights
+        for record in get_flights(self.records):
+            if (record.get("Client_ID") == client_id
+                    and record.get("Airline_ID") == airline_id
+                    and record.get("Date") == flight_date
+                    and record.get("Start City", "").lower() == start_city.lower()
+                    and record.get("End City", "").lower() == end_city.lower()):
+                messagebox.showerror(
+                    "Duplicate",
+                    "A flight with the same details already exists."
+                )
+                return
+
         # Generate next ID and create record
         new_id = get_next_id(self.records, "Flight")
         record = create_flight(
@@ -262,6 +311,8 @@ class FlightTab:
             flight_date, start_city, end_city
         )
         self.records.append(record)
+        if self.storage:
+            self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
         messagebox.showinfo("Success", "Flight record saved successfully.")
@@ -305,6 +356,26 @@ class FlightTab:
             )
             return
 
+        # Validate Client_ID exists
+        client_ids = {r["ID"] for r in get_clients(self.records)}
+        if client_id not in client_ids:
+            messagebox.showerror(
+                "Validation Error",
+                f"Client ID {client_id} does not exist. "
+                "Please enter a valid Client ID from the Clients tab."
+            )
+            return
+
+        # Validate Airline_ID exists
+        airline_ids = {r["ID"] for r in get_airlines(self.records)}
+        if airline_id not in airline_ids:
+            messagebox.showerror(
+                "Validation Error",
+                f"Airline ID {airline_id} does not exist. "
+                "Please enter a valid Airline ID from the Airlines tab."
+            )
+            return
+
         # Validate date format
         try:
             date.fromisoformat(flight_date)
@@ -332,6 +403,8 @@ class FlightTab:
             "End City": end_city,
         }
         update_flight(self.records, self.selected_id, updated_data)
+        if self.storage:
+            self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
         messagebox.showinfo("Success", "Flight record updated successfully.")
@@ -353,6 +426,8 @@ class FlightTab:
         )
         if confirm:
             delete_flight(self.records, self.selected_id)
+            if self.storage:
+                self.storage.save(self.records)
             self._clear_form()
             self.refresh_table()
             messagebox.showinfo("Success", "Flight record deleted.")
