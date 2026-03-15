@@ -10,6 +10,9 @@ from typing import List, Dict, Tuple, Any
 # used to validate ISO date strings
 from datetime import date
 
+from app.models.client import get_clients
+from app.models.airline import get_airlines
+
 # constant used to identify flight records
 FLIGHT_TYPE = "Flight"
 
@@ -88,6 +91,69 @@ def validate_flight(
         return False, "End City is required."
 
     return True, ""
+
+
+def validate_foreign_keys(
+    records: List[Dict[str, Any]],
+    client_id: int,
+    airline_id: int
+) -> Tuple[bool, str]:
+    """Validate that Client_ID and Airline_ID reference existing records.
+
+    Args:
+        records: List of all record dictionaries.
+        client_id: Client ID to validate.
+        airline_id: Airline ID to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+    """
+    client_ids = {r["ID"] for r in get_clients(records)}
+    if client_id not in client_ids:
+        return False, (
+            f"Client ID {client_id} does not exist. "
+            "Please enter a valid Client ID from the Clients tab."
+        )
+
+    airline_ids = {r["ID"] for r in get_airlines(records)}
+    if airline_id not in airline_ids:
+        return False, (
+            f"Airline ID {airline_id} does not exist. "
+            "Please enter a valid Airline ID from the Airlines tab."
+        )
+
+    return True, ""
+
+
+def check_duplicate_flight(
+    records: List[Dict[str, Any]],
+    client_id: int,
+    airline_id: int,
+    flight_date: str,
+    start_city: str,
+    end_city: str
+) -> bool:
+    """Check if a flight with the same details already exists.
+
+    Args:
+        records: List of all record dictionaries.
+        client_id: Client ID to check.
+        airline_id: Airline ID to check.
+        flight_date: Flight date string to check.
+        start_city: Departure city to check.
+        end_city: Arrival city to check.
+
+    Returns:
+        True if a duplicate exists, False otherwise.
+    """
+    for record in get_flights(records):
+        if (record.get("Client_ID") == client_id
+                and record.get("Airline_ID") == airline_id
+                and record.get("Date") == flight_date
+                and record.get("Start City", "").lower() == start_city.lower()
+                and record.get("End City", "").lower() == end_city.lower()):
+            return True
+    return False
 
 
 def get_flights(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

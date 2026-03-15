@@ -97,6 +97,26 @@ def validate_client(
     return True, ""
 
 
+def check_duplicate_client(
+    records: List[Record], name: str, phone: str
+) -> bool:
+    """Check if a client with the same name and phone already exists.
+
+    Args:
+        records: List of all record dictionaries.
+        name: Client name to check.
+        phone: Client phone number to check.
+
+    Returns:
+        True if a duplicate exists, False otherwise.
+    """
+    for record in get_clients(records):
+        if (record.get("Name", "").lower() == name.lower()
+                and record.get("Phone", "").lower() == phone.lower()):
+            return True
+    return False
+
+
 def get_clients(records: List[Record]) -> List[Record]:
     """Return all client records.
 

@@ -8,6 +8,7 @@ from typing import List, Dict
 from app.models.client import (
     create_client, validate_client, get_clients,
     update_client, delete_client, search_clients,
+    check_duplicate_client,
 )
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
@@ -239,14 +240,14 @@ class ClientTab:
             messagebox.showerror("Validation Error", msg)
             return
 
-        for record in get_clients(self.records):
-            if (record.get("Name", "").lower() == values["Name"].lower()
-                    and record.get("Phone", "").lower() == values["Phone"].lower()):
-                messagebox.showerror(
-                    "Duplicate",
-                    "A client with the same name and phone number already exists."
-                )
-                return
+        if check_duplicate_client(
+            self.records, values["Name"], values["Phone"]
+        ):
+            messagebox.showerror(
+                "Duplicate",
+                "A client with the same name and phone number already exists."
+            )
+            return
 
         new_id = get_next_id(self.records, "Client")
         record = create_client(

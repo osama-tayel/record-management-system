@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import List, Dict
 
-from app.models.airline import get_airlines
+from app.models.airline import get_airlines, check_duplicate_airline
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
 
@@ -322,10 +322,9 @@ class AirlineTab:
             messagebox.showwarning("Validation", "Company Name is required.")
             return
 
-        for record in get_airlines(self.records):
-            if record.get("Company Name", "").lower() == name.lower():
-                messagebox.showerror("Duplicate", "Airline already exists.")
-                return
+        if check_duplicate_airline(self.records, name):
+            messagebox.showerror("Duplicate", "Airline already exists.")
+            return
 
         new_id = get_next_id(self.records, "Airline")
 

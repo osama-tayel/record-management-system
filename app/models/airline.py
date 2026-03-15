@@ -42,6 +42,24 @@ def validate_airline(company_name: str) -> Tuple[bool, str]:
     return True, ""
 
 
+def check_duplicate_airline(
+    records: List[Dict[str, Any]], company_name: str
+) -> bool:
+    """Check if an airline with the same company name already exists.
+
+    Args:
+        records: List of all record dictionaries.
+        company_name: Airline company name to check.
+
+    Returns:
+        True if a duplicate exists, False otherwise.
+    """
+    for record in get_airlines(records):
+        if record.get("Company Name", "").lower() == company_name.lower():
+            return True
+    return False
+
+
 def get_airlines(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Return all records where Type is 'Airline'.
 

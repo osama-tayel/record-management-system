@@ -4,14 +4,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import List, Dict
-from datetime import date
 
 from app.models.flight import (
     create_flight, validate_flight, get_flights,
     update_flight, delete_flight, search_flights,
+    validate_foreign_keys, check_duplicate_flight,
 )
-from app.models.client import get_clients
-from app.models.airline import get_airlines
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
 
@@ -253,36 +251,6 @@ class FlightTab:
             )
             return
 
-        # Validate Client_ID exists
-        client_ids = {r["ID"] for r in get_clients(self.records)}
-        if client_id not in client_ids:
-            messagebox.showerror(
-                "Validation Error",
-                f"Client ID {client_id} does not exist. "
-                "Please enter a valid Client ID from the Clients tab."
-            )
-            return
-
-        # Validate Airline_ID exists
-        airline_ids = {r["ID"] for r in get_airlines(self.records)}
-        if airline_id not in airline_ids:
-            messagebox.showerror(
-                "Validation Error",
-                f"Airline ID {airline_id} does not exist. "
-                "Please enter a valid Airline ID from the Airlines tab."
-            )
-            return
-
-        # Validate date format using date.fromisoformat()
-        try:
-            date.fromisoformat(flight_date)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Date must be in YYYY-MM-DD format (e.g., 2026-03-15)."
-            )
-            return
-
         # Validate using flight model validation
         valid, msg = validate_flight(
             client_id, airline_id, flight_date, start_city, end_city
@@ -291,18 +259,24 @@ class FlightTab:
             messagebox.showerror("Validation Error", msg)
             return
 
+        # Validate foreign keys exist
+        fk_valid, fk_msg = validate_foreign_keys(
+            self.records, client_id, airline_id
+        )
+        if not fk_valid:
+            messagebox.showerror("Validation Error", fk_msg)
+            return
+
         # Check for duplicate flights
-        for record in get_flights(self.records):
-            if (record.get("Client_ID") == client_id
-                    and record.get("Airline_ID") == airline_id
-                    and record.get("Date") == flight_date
-                    and record.get("Start City", "").lower() == start_city.lower()
-                    and record.get("End City", "").lower() == end_city.lower()):
-                messagebox.showerror(
-                    "Duplicate",
-                    "A flight with the same details already exists."
-                )
-                return
+        if check_duplicate_flight(
+            self.records, client_id, airline_id,
+            flight_date, start_city, end_city
+        ):
+            messagebox.showerror(
+                "Duplicate",
+                "A flight with the same details already exists."
+            )
+            return
 
         # Generate next ID and create record
         new_id = get_next_id(self.records, "Flight")
@@ -356,42 +330,20 @@ class FlightTab:
             )
             return
 
-        # Validate Client_ID exists
-        client_ids = {r["ID"] for r in get_clients(self.records)}
-        if client_id not in client_ids:
-            messagebox.showerror(
-                "Validation Error",
-                f"Client ID {client_id} does not exist. "
-                "Please enter a valid Client ID from the Clients tab."
-            )
-            return
-
-        # Validate Airline_ID exists
-        airline_ids = {r["ID"] for r in get_airlines(self.records)}
-        if airline_id not in airline_ids:
-            messagebox.showerror(
-                "Validation Error",
-                f"Airline ID {airline_id} does not exist. "
-                "Please enter a valid Airline ID from the Airlines tab."
-            )
-            return
-
-        # Validate date format
-        try:
-            date.fromisoformat(flight_date)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Date must be in YYYY-MM-DD format (e.g., 2026-03-15)."
-            )
-            return
-
         # Validate using flight model validation
         valid, msg = validate_flight(
             client_id, airline_id, flight_date, start_city, end_city
         )
         if not valid:
             messagebox.showerror("Validation Error", msg)
+            return
+
+        # Validate foreign keys exist
+        fk_valid, fk_msg = validate_foreign_keys(
+            self.records, client_id, airline_id
+        )
+        if not fk_valid:
+            messagebox.showerror("Validation Error", fk_msg)
             return
 
         # Update record
