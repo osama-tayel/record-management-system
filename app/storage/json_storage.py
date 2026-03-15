@@ -28,35 +28,30 @@ class StorageManager:
                 Defaults to 'data/records.json'.
         """
         self.filepath = Path(filepath)
+        self._sample_path = self.filepath.parent / 'sample_records.json'
 
     def load(self) -> List[Dict[str, Any]]:
         """Load records from the JSON file.
 
+        On first run (no records.json), loads sample data if available and
+        persists it so subsequent launches use the same file.
+
         Returns:
-            List of record dictionaries. Returns an empty list if the file
-            doesn't exist (e.g. on first run).
+            List of record dictionaries. Returns an empty list if neither
+            the data file nor sample data exists.
 
         Raises:
             json.JSONDecodeError: If the file contains invalid JSON.
             PermissionError: If the file cannot be read due to permissions.
         """
         if not self.filepath.exists():
+            if self._sample_path.exists():
+                records = self._read_json(self._sample_path)
+                self.save(records)
+                return records
             return []
 
-        try:
-            with open(self.filepath, 'r', encoding='utf-8') as file:
-                records = json.load(file)
-                return records if isinstance(records, list) else []
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Invalid JSON in {self.filepath}: {str(e)}",
-                e.doc,
-                e.pos
-            )
-        except PermissionError as e:
-            raise PermissionError(
-                f"Cannot read file {self.filepath}: {str(e)}"
-            )
+        return self._read_json(self.filepath)
 
     def save(self, records: List[Dict[str, Any]]) -> None:
         """Save records to the JSON file.
@@ -86,6 +81,34 @@ class StorageManager:
         except PermissionError as e:
             raise PermissionError(
                 f"Cannot write to file {self.filepath}: {str(e)}"
+            )
+
+    def _read_json(self, path: Path) -> List[Dict[str, Any]]:
+        """Read and parse a JSON file into a list of records.
+
+        Args:
+            path: Path to the JSON file to read.
+
+        Returns:
+            List of record dictionaries, or empty list if contents invalid.
+
+        Raises:
+            json.JSONDecodeError: If the file contains invalid JSON.
+            PermissionError: If the file cannot be read due to permissions.
+        """
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                records = json.load(file)
+                return records if isinstance(records, list) else []
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Invalid JSON in {path}: {str(e)}",
+                e.doc,
+                e.pos
+            )
+        except PermissionError as e:
+            raise PermissionError(
+                f"Cannot read file {path}: {str(e)}"
             )
 
     def _convert_dates_to_strings(
