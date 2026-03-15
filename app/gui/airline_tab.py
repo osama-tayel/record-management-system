@@ -342,6 +342,8 @@ class AirlineTab:
 
         self.clear_form()
 
+        messagebox.showinfo("Success", "Airline added successfully.")
+
     # -----------------------------
     # Update airline
     # -----------------------------
@@ -375,6 +377,8 @@ class AirlineTab:
         self.refresh_table()
 
         self.clear_form()
+
+        messagebox.showinfo("Success", "Airline updated successfully.")
 
     # -----------------------------
     # Delete airline
@@ -413,6 +417,8 @@ class AirlineTab:
         self.refresh_table()
 
         self.clear_form()
+
+        messagebox.showinfo("Success", "Airline deleted.")
 
     # -----------------------------
     # Clear form

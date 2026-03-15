@@ -10,14 +10,17 @@ from app.models.flight import (
     update_flight, delete_flight, search_flights,
     validate_foreign_keys, check_duplicate_flight,
 )
+from app.models.client import get_clients
+from app.models.airline import get_airlines
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
+from app.gui.autocomplete import AutocompleteEntry
 
 # (key, heading, width)
 FLIGHT_COLUMNS = [
     ("ID", "ID", 50),
-    ("Client_ID", "Client ID", 80),
-    ("Airline_ID", "Airline ID", 80),
+    ("Client_ID", "Client", 160),
+    ("Airline_ID", "Airline", 160),
     ("Date", "Date", 100),
     ("Start City", "From", 120),
     ("End City", "To", 120),
@@ -92,6 +95,32 @@ class FlightTab:
             ("End City", "To City *"),
         ]
 
+        # Autocomplete suggestion callbacks for each field
+        ac_callbacks = {
+            "Client_ID": lambda: [
+                f"{r['ID']} - {r.get('Name', '')}"
+                for r in get_clients(self.records)
+            ],
+            "Airline_ID": lambda: [
+                f"{r['ID']} - {r.get('Company Name', '')}"
+                for r in get_airlines(self.records)
+            ],
+            "Start City": lambda: sorted({
+                r.get("Start City", "") for r in get_flights(self.records)
+                if r.get("Start City")
+            } | {
+                r.get("City", "") for r in get_clients(self.records)
+                if r.get("City")
+            }),
+            "End City": lambda: sorted({
+                r.get("End City", "") for r in get_flights(self.records)
+                if r.get("End City")
+            } | {
+                r.get("City", "") for r in get_clients(self.records)
+                if r.get("City")
+            }),
+        }
+
         row = 1
         col_offset = 0
         for key, label in fields:
@@ -100,7 +129,16 @@ class FlightTab:
             )
             var = tk.StringVar()
             self.field_vars[key] = var
-            ttk.Entry(form_wrapper, textvariable=var, style="TEntry").grid(
+
+            if key in ac_callbacks:
+                entry = AutocompleteEntry(
+                    form_wrapper, textvariable=var,
+                    get_suggestions=ac_callbacks[key], style="TEntry"
+                )
+            else:
+                entry = ttk.Entry(form_wrapper, textvariable=var, style="TEntry")
+
+            entry.grid(
                 row=row, column=col_offset + 1,
                 sticky="ew", padx=(0, 20), pady=4,
             )
@@ -208,6 +246,59 @@ class FlightTab:
 
         self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
 
+    @staticmethod
+    def _extract_id(value: str) -> str:
+        """Extract the numeric ID from an autocomplete value like '1 - Name'."""
+        return value.split(" - ")[0].strip() if " - " in value else value.strip()
+
+    def _parse_form_values(self):
+        """Parse and validate form values, returning a tuple or None on error.
+
+        Handles the '1 - Name' autocomplete format for ID fields.
+        Runs field validation and FK validation.
+
+        Returns:
+            Tuple of (client_id, airline_id, flight_date, start_city, end_city)
+            or None if validation fails.
+        """
+        client_id_str = self._extract_id(self.field_vars["Client_ID"].get())
+        airline_id_str = self._extract_id(self.field_vars["Airline_ID"].get())
+        flight_date = self.field_vars["Date"].get().strip()
+        start_city = self.field_vars["Start City"].get().strip()
+        end_city = self.field_vars["End City"].get().strip()
+
+        try:
+            client_id = int(client_id_str)
+        except ValueError:
+            messagebox.showerror(
+                "Validation Error", "Client ID must be a valid integer."
+            )
+            return None
+
+        try:
+            airline_id = int(airline_id_str)
+        except ValueError:
+            messagebox.showerror(
+                "Validation Error", "Airline ID must be a valid integer."
+            )
+            return None
+
+        valid, msg = validate_flight(
+            client_id, airline_id, flight_date, start_city, end_city
+        )
+        if not valid:
+            messagebox.showerror("Validation Error", msg)
+            return None
+
+        fk_valid, fk_msg = validate_foreign_keys(
+            self.records, client_id, airline_id
+        )
+        if not fk_valid:
+            messagebox.showerror("Validation Error", fk_msg)
+            return None
+
+        return client_id, airline_id, flight_date, start_city, end_city
+
     def _on_save(self) -> None:
         """Save a new flight record with validation.
 
@@ -224,48 +315,12 @@ class FlightTab:
             )
             return
 
-        # Get form values
-        client_id_str = self.field_vars["Client_ID"].get().strip()
-        airline_id_str = self.field_vars["Airline_ID"].get().strip()
-        flight_date = self.field_vars["Date"].get().strip()
-        start_city = self.field_vars["Start City"].get().strip()
-        end_city = self.field_vars["End City"].get().strip()
-
-        # Validate Client_ID is an integer
-        try:
-            client_id = int(client_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Client ID must be a valid integer."
-            )
+        # Parse form values (handle "1 - Name" autocomplete format)
+        parsed = self._parse_form_values()
+        if parsed is None:
             return
 
-        # Validate Airline_ID is an integer
-        try:
-            airline_id = int(airline_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Airline ID must be a valid integer."
-            )
-            return
-
-        # Validate using flight model validation
-        valid, msg = validate_flight(
-            client_id, airline_id, flight_date, start_city, end_city
-        )
-        if not valid:
-            messagebox.showerror("Validation Error", msg)
-            return
-
-        # Validate foreign keys exist
-        fk_valid, fk_msg = validate_foreign_keys(
-            self.records, client_id, airline_id
-        )
-        if not fk_valid:
-            messagebox.showerror("Validation Error", fk_msg)
-            return
+        client_id, airline_id, flight_date, start_city, end_city = parsed
 
         # Check for duplicate flights
         if check_duplicate_flight(
@@ -303,48 +358,12 @@ class FlightTab:
             messagebox.showwarning("No Selection", "Select a record to update.")
             return
 
-        # Get form values
-        client_id_str = self.field_vars["Client_ID"].get().strip()
-        airline_id_str = self.field_vars["Airline_ID"].get().strip()
-        flight_date = self.field_vars["Date"].get().strip()
-        start_city = self.field_vars["Start City"].get().strip()
-        end_city = self.field_vars["End City"].get().strip()
-
-        # Validate Client_ID is an integer
-        try:
-            client_id = int(client_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Client ID must be a valid integer."
-            )
+        # Parse form values (handle "1 - Name" autocomplete format)
+        parsed = self._parse_form_values()
+        if parsed is None:
             return
 
-        # Validate Airline_ID is an integer
-        try:
-            airline_id = int(airline_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error",
-                "Airline ID must be a valid integer."
-            )
-            return
-
-        # Validate using flight model validation
-        valid, msg = validate_flight(
-            client_id, airline_id, flight_date, start_city, end_city
-        )
-        if not valid:
-            messagebox.showerror("Validation Error", msg)
-            return
-
-        # Validate foreign keys exist
-        fk_valid, fk_msg = validate_foreign_keys(
-            self.records, client_id, airline_id
-        )
-        if not fk_valid:
-            messagebox.showerror("Validation Error", fk_msg)
-            return
+        client_id, airline_id, flight_date, start_city, end_city = parsed
 
         # Update record
         updated_data = {
@@ -419,9 +438,16 @@ class FlightTab:
         row_data = dict(zip(col_keys, values))
         self.selected_id = row_data.get("ID")
 
-        # Populate form fields from selected row
+        # Look up the full record to get raw IDs (table shows "1 - Name")
+        full_record = {}
+        for record in self.records:
+            if (record.get("ID") == self.selected_id
+                    and record.get("Type") == "Flight"):
+                full_record = record
+                break
+
         for key in ["Client_ID", "Airline_ID", "Date", "Start City", "End City"]:
-            self.field_vars[key].set(str(row_data.get(key, "")))
+            self.field_vars[key].set(str(full_record.get(key, "")))
 
     def _clear_form(self) -> None:
         """Clear all form fields and deselect table row.
@@ -442,20 +468,39 @@ class FlightTab:
         flights = get_flights(self.records)
         self._populate_table(flights)
 
+    def _lookup_client_name(self, client_id) -> str:
+        """Look up client name by ID for display in the table."""
+        for r in get_clients(self.records):
+            if r.get("ID") == client_id:
+                return f"{client_id} - {r.get('Name', '')}"
+        return str(client_id)
+
+    def _lookup_airline_name(self, airline_id) -> str:
+        """Look up airline name by ID for display in the table."""
+        for r in get_airlines(self.records):
+            if r.get("ID") == airline_id:
+                return f"{airline_id} - {r.get('Company Name', '')}"
+        return str(airline_id)
+
     def _populate_table(self, data: List[Dict]) -> None:
         """Populate the table with flight data.
 
-        Clears the current table contents and inserts rows for each
-        flight record in the provided data list.
+        Resolves Client_ID and Airline_ID to display names alongside IDs.
 
         Args:
             data: List of flight record dictionaries to display.
         """
         self.tree.delete(*self.tree.get_children())
-        col_keys = [c[0] for c in FLIGHT_COLUMNS]
 
         for record in data:
-            row_values = [record.get(k, "") for k in col_keys]
+            row_values = [
+                record.get("ID", ""),
+                self._lookup_client_name(record.get("Client_ID", "")),
+                self._lookup_airline_name(record.get("Airline_ID", "")),
+                record.get("Date", ""),
+                record.get("Start City", ""),
+                record.get("End City", ""),
+            ]
             self.tree.insert("", "end", values=row_values)
 
     def _sort_column(self, col, reverse):
