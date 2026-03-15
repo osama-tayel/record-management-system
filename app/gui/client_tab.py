@@ -12,6 +12,7 @@ from app.models.client import (
 )
 from app.models.id_generator import get_next_id
 from app.storage.json_storage import StorageManager
+from app.gui.autocomplete import AutocompleteEntry
 
 # (dict_key, label_text, required)
 CLIENT_FIELDS = [
@@ -98,6 +99,18 @@ class ClientTab:
             form_wrapper, text="Client Details", style="Title.TLabel"
         ).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 12))
 
+        # Autocomplete suggestion callbacks for city and country fields
+        ac_callbacks = {
+            "City": lambda: sorted({
+                r.get("City", "") for r in get_clients(self.records)
+                if r.get("City")
+            }),
+            "Country": lambda: sorted({
+                r.get("Country", "") for r in get_clients(self.records)
+                if r.get("Country")
+            }),
+        }
+
         # lay fields in two columns, alternating left/right
         row = 1
         col_offset = 0
@@ -110,7 +123,15 @@ class ClientTab:
 
             var = tk.StringVar()
             self.field_vars[key] = var
-            entry = ttk.Entry(form_wrapper, textvariable=var, style="TEntry")
+
+            if key in ac_callbacks:
+                entry = AutocompleteEntry(
+                    form_wrapper, textvariable=var,
+                    get_suggestions=ac_callbacks[key], style="TEntry"
+                )
+            else:
+                entry = ttk.Entry(form_wrapper, textvariable=var, style="TEntry")
+
             entry.grid(
                 row=row, column=col_offset + 1,
                 sticky="ew", padx=(0, 20), pady=4,
@@ -262,6 +283,7 @@ class ClientTab:
             self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
+        messagebox.showinfo("Success", "Client record saved successfully.")
 
     def _on_update(self) -> None:
         """Update an existing client record with validation.
@@ -289,6 +311,7 @@ class ClientTab:
             self.storage.save(self.records)
         self._clear_form()
         self.refresh_table()
+        messagebox.showinfo("Success", "Client record updated successfully.")
 
     def _on_delete(self) -> None:
         """Delete a client record with confirmation.
@@ -311,6 +334,7 @@ class ClientTab:
                 self.storage.save(self.records)
             self._clear_form()
             self.refresh_table()
+            messagebox.showinfo("Success", "Client record deleted.")
 
     def _on_search(self) -> None:
         """Search client records by any field.
