@@ -1,6 +1,7 @@
 # Record Management System
 
 **CSCK541 Software Development in Practice**
+**Group C**
 
 ## About
 
@@ -80,7 +81,7 @@ python -m pytest tests/
 | Name | Role |
 |------|------|
 | Ahmed Tayel | Project Manager & Designer |
+| Callum Blanshard | Tester |
+| Chadé Smith | Designer |
 | Christopher Lloyd | Engineer |
 | Fouzia Farqan | Engineer |
-| Chadé Smith | Designer |
-| Callum Blanshard | Tester |
