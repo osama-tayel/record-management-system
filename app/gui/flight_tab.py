@@ -18,12 +18,13 @@ from app.gui.autocomplete import AutocompleteEntry
 
 # (key, heading, width)
 FLIGHT_COLUMNS = [
-    ("ID", "ID", 50),
-    ("Client_ID", "Client", 160),
-    ("Airline_ID", "Airline", 160),
-    ("Date", "Date", 100),
-    ("Start City", "From", 120),
-    ("End City", "To", 120),
+    ("ID", "ID", 40),
+    ("Client_ID", "Client ID", 60),
+    ("Client_Name", "Client Name", 140),
+    ("Airline_Name", "Airline Name", 140),
+    ("Date", "Date", 90),
+    ("Start City", "From", 100),
+    ("End City", "To", 100),
 ]
 
 
@@ -65,6 +66,7 @@ class FlightTab:
 
         self._build_form(parent)
         self._build_table(parent)
+        self._refresh_combos()
         self.refresh_table()
 
     def _build_form(self, parent: ttk.Frame) -> None:
@@ -86,25 +88,38 @@ class FlightTab:
             form_wrapper, text="Flight Details", style="Title.TLabel"
         ).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 12))
 
-        # Form fields in two columns
-        fields = [
-            ("Client_ID", "Client ID *"),
-            ("Airline_ID", "Airline ID *"),
+        # Client dropdown
+        ttk.Label(form_wrapper, text="Client *", style="TLabel").grid(
+            row=1, column=0, sticky="w", padx=(0, 8), pady=4
+        )
+        self._client_var = tk.StringVar()
+        self._client_combo = ttk.Combobox(
+            form_wrapper, textvariable=self._client_var, state="readonly"
+        )
+        self._client_combo.grid(
+            row=1, column=1, sticky="ew", padx=(0, 20), pady=4
+        )
+
+        # Airline dropdown
+        ttk.Label(form_wrapper, text="Airline *", style="TLabel").grid(
+            row=1, column=2, sticky="w", padx=(0, 8), pady=4
+        )
+        self._airline_var = tk.StringVar()
+        self._airline_combo = ttk.Combobox(
+            form_wrapper, textvariable=self._airline_var, state="readonly"
+        )
+        self._airline_combo.grid(
+            row=1, column=3, sticky="ew", padx=(0, 0), pady=4
+        )
+
+        # Remaining text fields with autocomplete on cities
+        text_fields = [
             ("Date", "Date (YYYY-MM-DD) *"),
             ("Start City", "From City *"),
             ("End City", "To City *"),
         ]
 
-        # Autocomplete suggestion callbacks for each field
         ac_callbacks = {
-            "Client_ID": lambda: [
-                f"{r['ID']} - {r.get('Name', '')}"
-                for r in get_clients(self.records)
-            ],
-            "Airline_ID": lambda: [
-                f"{r['ID']} - {r.get('Company Name', '')}"
-                for r in get_airlines(self.records)
-            ],
             "Start City": lambda: sorted({
                 r.get("Start City", "") for r in get_flights(self.records)
                 if r.get("Start City")
@@ -121,9 +136,9 @@ class FlightTab:
             }),
         }
 
-        row = 1
+        row = 2
         col_offset = 0
-        for key, label in fields:
+        for key, label in text_fields:
             ttk.Label(form_wrapper, text=label, style="TLabel").grid(
                 row=row, column=col_offset, sticky="w", padx=(0, 8), pady=4
             )
@@ -246,55 +261,53 @@ class FlightTab:
 
         self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
 
-    @staticmethod
-    def _extract_id(value: str) -> str:
-        """Extract the numeric ID from an autocomplete value like '1 - Name'."""
-        return value.split(" - ")[0].strip() if " - " in value else value.strip()
+    def _refresh_combos(self):
+        """Refresh the client and airline dropdown options."""
+        self._client_options = {
+            r.get("Name", ""): r["ID"] for r in get_clients(self.records)
+        }
+        self._airline_options = {
+            r.get("Company Name", ""): r["ID"] for r in get_airlines(self.records)
+        }
+        self._client_combo["values"] = list(self._client_options.keys())
+        self._airline_combo["values"] = list(self._airline_options.keys())
 
     def _parse_form_values(self):
-        """Parse and validate form values, returning a tuple or None on error.
-
-        Handles the '1 - Name' autocomplete format for ID fields.
-        Runs field validation and FK validation.
+        """Parse and validate form values from dropdowns and text fields.
 
         Returns:
             Tuple of (client_id, airline_id, flight_date, start_city, end_city)
             or None if validation fails.
         """
-        client_id_str = self._extract_id(self.field_vars["Client_ID"].get())
-        airline_id_str = self._extract_id(self.field_vars["Airline_ID"].get())
+        client_name = self._client_var.get()
+        airline_name = self._airline_var.get()
+
+        if not client_name:
+            messagebox.showerror("Validation Error", "Please select a client.")
+            return None
+        if not airline_name:
+            messagebox.showerror("Validation Error", "Please select an airline.")
+            return None
+
+        client_id = self._client_options.get(client_name)
+        airline_id = self._airline_options.get(airline_name)
+
+        if client_id is None:
+            messagebox.showerror("Validation Error", "Selected client not found.")
+            return None
+        if airline_id is None:
+            messagebox.showerror("Validation Error", "Selected airline not found.")
+            return None
+
         flight_date = self.field_vars["Date"].get().strip()
         start_city = self.field_vars["Start City"].get().strip()
         end_city = self.field_vars["End City"].get().strip()
-
-        try:
-            client_id = int(client_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error", "Client ID must be a valid integer."
-            )
-            return None
-
-        try:
-            airline_id = int(airline_id_str)
-        except ValueError:
-            messagebox.showerror(
-                "Validation Error", "Airline ID must be a valid integer."
-            )
-            return None
 
         valid, msg = validate_flight(
             client_id, airline_id, flight_date, start_city, end_city
         )
         if not valid:
             messagebox.showerror("Validation Error", msg)
-            return None
-
-        fk_valid, fk_msg = validate_foreign_keys(
-            self.records, client_id, airline_id
-        )
-        if not fk_valid:
-            messagebox.showerror("Validation Error", fk_msg)
             return None
 
         return client_id, airline_id, flight_date, start_city, end_city
@@ -404,18 +417,39 @@ class FlightTab:
             messagebox.showinfo("Success", "Flight record deleted.")
 
     def _on_search(self) -> None:
-        """Search flight records by any field.
+        """Search flight records by any field including resolved names.
 
-        Executes case-insensitive search across all flight fields using
-        the search term and updates the table to show matching records.
-        If search term is empty, shows all records.
+        Searches across all flight fields plus the client name and airline
+        name (resolved from IDs). Case-insensitive. If search term is empty,
+        shows all records.
         """
-        term = self.search_var.get().strip()
+        term = self.search_var.get().strip().lower()
         if not term:
             self.refresh_table()
             return
 
-        results = search_flights(self.records, term)
+        results = []
+        for record in get_flights(self.records):
+            client_name = self._lookup_client_name(
+                record.get("Client_ID")
+            ).lower()
+            airline_name = self._lookup_airline_name(
+                record.get("Airline_ID")
+            ).lower()
+
+            searchable = [
+                str(record.get("ID", "")),
+                str(record.get("Client_ID", "")),
+                client_name,
+                airline_name,
+                record.get("Date", ""),
+                record.get("Start City", ""),
+                record.get("End City", ""),
+            ]
+
+            if any(term in field.lower() for field in searchable):
+                results.append(record)
+
         self._populate_table(results)
 
     def _on_row_select(self, event) -> None:
@@ -438,7 +472,7 @@ class FlightTab:
         row_data = dict(zip(col_keys, values))
         self.selected_id = row_data.get("ID")
 
-        # Look up the full record to get raw IDs (table shows "1 - Name")
+        # Look up the full record to populate form fields
         full_record = {}
         for record in self.records:
             if (record.get("ID") == self.selected_id
@@ -446,18 +480,28 @@ class FlightTab:
                 full_record = record
                 break
 
-        for key in ["Client_ID", "Airline_ID", "Date", "Start City", "End City"]:
+        # Set combobox selections by looking up names from IDs
+        client_name = self._lookup_client_name(full_record.get("Client_ID"))
+        airline_name = self._lookup_airline_name(full_record.get("Airline_ID"))
+        self._client_var.set(client_name)
+        self._airline_var.set(airline_name)
+
+        for key in ["Date", "Start City", "End City"]:
             self.field_vars[key].set(str(full_record.get(key, "")))
 
     def _clear_form(self) -> None:
         """Clear all form fields and deselect table row.
 
-        Resets the selected_id, clears all field values and the search field.
+        Resets the selected_id, clears all field values, comboboxes,
+        and the search field.
         """
         self.selected_id = None
+        self._client_var.set("")
+        self._airline_var.set("")
         for var in self.field_vars.values():
             var.set("")
         self.search_var.set("")
+        self._refresh_combos()
 
     def refresh_table(self) -> None:
         """Refresh the table to show all flight records.
@@ -472,20 +516,20 @@ class FlightTab:
         """Look up client name by ID for display in the table."""
         for r in get_clients(self.records):
             if r.get("ID") == client_id:
-                return f"{client_id} - {r.get('Name', '')}"
-        return str(client_id)
+                return r.get("Name", "")
+        return ""
 
     def _lookup_airline_name(self, airline_id) -> str:
-        """Look up airline name by ID for display in the table."""
+        """Look up airline company name by ID for display in the table."""
         for r in get_airlines(self.records):
             if r.get("ID") == airline_id:
-                return f"{airline_id} - {r.get('Company Name', '')}"
-        return str(airline_id)
+                return r.get("Company Name", "")
+        return ""
 
     def _populate_table(self, data: List[Dict]) -> None:
         """Populate the table with flight data.
 
-        Resolves Client_ID and Airline_ID to display names alongside IDs.
+        Resolves Client_ID and Airline_ID to display names in separate columns.
 
         Args:
             data: List of flight record dictionaries to display.
@@ -493,10 +537,13 @@ class FlightTab:
         self.tree.delete(*self.tree.get_children())
 
         for record in data:
+            client_id = record.get("Client_ID", "")
+            airline_id = record.get("Airline_ID", "")
             row_values = [
                 record.get("ID", ""),
-                self._lookup_client_name(record.get("Client_ID", "")),
-                self._lookup_airline_name(record.get("Airline_ID", "")),
+                client_id,
+                self._lookup_client_name(client_id),
+                self._lookup_airline_name(airline_id),
                 record.get("Date", ""),
                 record.get("Start City", ""),
                 record.get("End City", ""),
