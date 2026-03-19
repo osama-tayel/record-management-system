@@ -15,14 +15,14 @@ class TestGuiLogic(unittest.TestCase):
             "Address Line 1": "Calle Mayor 1",
             "City": "Valencia",
             "Country": "Spain",
-            "Phone": "07712345678"
+            "Phone Number": "07712345678"
         }
         is_valid, error = validate_client(
             test_data["Name"],
             test_data["Address Line 1"],
             test_data["City"],
             test_data["Country"],
-            test_data["Phone"],
+            test_data["Phone Number"],
         )
         self.assertFalse(is_valid)
         self.assertEqual(error, "Name is required.")
@@ -35,14 +35,14 @@ class TestGuiLogic(unittest.TestCase):
             "Address Line 1": "Calle Mayor 1",
             "City": "Valencia",
             "Country": "Spain",
-            "Phone": "07712345678",
+            "Phone Number": "07712345678",
         }
         is_valid, error = validate_client(
             valid_test_data["Name"],
             valid_test_data["Address Line 1"],
             valid_test_data["City"],
             valid_test_data["Country"],
-            valid_test_data["Phone"],
+            valid_test_data["Phone Number"],
         )
         self.assertTrue(is_valid)
         self.assertEqual(error,"")
@@ -72,7 +72,7 @@ class TestGuiLogic(unittest.TestCase):
             "State": "Greater Manchester",
             "Zip Code": "M45 6AB",
             "Country": "United Kingdom",
-            "Phone": "01619999999"
+            "Phone Number": "01619999999"
         }
         self.assertIsInstance(client, dict)
         self.assertEqual(client, expected_client)

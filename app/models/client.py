@@ -53,7 +53,7 @@ def create_client(
         "State": state,
         "Zip Code": zip_code,
         "Country": country,
-        "Phone": phone
+        "Phone Number": phone
     }
 
 
@@ -112,7 +112,7 @@ def check_duplicate_client(
     """
     for record in get_clients(records):
         if (record.get("Name", "").lower() == name.lower()
-                and record.get("Phone", "").lower() == phone.lower()):
+                and record.get("Phone Number", "").lower() == phone.lower()):
             return True
     return False
 

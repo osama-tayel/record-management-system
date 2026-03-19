@@ -10,7 +10,7 @@
         "State": "",
         "Zip Code": "SW1A 1AA",
         "Country": "United Kingdom",
-        "Phone": "+44 20 7946 0123"
+        "Phone Number": "+44 20 7946 0123"
     },
     {
         "ID": 2,
@@ -23,7 +23,7 @@
         "State": "",
         "Zip Code": "M1 1AE",
         "Country": "United Kingdom",
-        "Phone": "+44 161 496 0456"
+        "Phone Number": "+44 161 496 0456"
     },
     {
         "ID": 3,
@@ -36,7 +36,7 @@
         "State": "",
         "Zip Code": "B1 1BB",
         "Country": "United Kingdom",
-        "Phone": "+44 121 496 0789"
+        "Phone Number": "+44 121 496 0789"
     },
     {
         "ID": 4,
@@ -49,7 +49,7 @@
         "State": "",
         "Zip Code": "D01 F5P2",
         "Country": "Ireland",
-        "Phone": "+353 1 496 0234"
+        "Phone Number": "+353 1 496 0234"
     },
     {
         "ID": 5,
@@ -62,7 +62,7 @@
         "State": "",
         "Zip Code": "EH1 1YZ",
         "Country": "United Kingdom",
-        "Phone": "+44 131 496 0567"
+        "Phone Number": "+44 131 496 0567"
     },
     {
         "ID": 1,

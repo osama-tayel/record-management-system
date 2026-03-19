@@ -24,7 +24,7 @@ CLIENT_FIELDS = [
     ("State", "State", False),
     ("Zip Code", "Zip Code", False),
     ("Country", "Country", True),
-    ("Phone", "Phone Number", True),
+    ("Phone Number", "Phone Number", True),
 ]
 
 # (key, heading, width)
@@ -36,7 +36,7 @@ CLIENT_COLUMNS = [
     ("State", "State", 70),
     ("Zip Code", "Zip", 60),
     ("Country", "Country", 80),
-    ("Phone", "Phone", 110),
+    ("Phone Number", "Phone Number", 110),
 ]
 
 
@@ -255,14 +255,14 @@ class ClientTab:
 
         valid, msg = validate_client(
             values["Name"], values["Address Line 1"],
-            values["City"], values["Country"], values["Phone"],
+            values["City"], values["Country"], values["Phone Number"],
         )
         if not valid:
             messagebox.showerror("Validation Error", msg)
             return
 
         if check_duplicate_client(
-            self.records, values["Name"], values["Phone"]
+            self.records, values["Name"], values["Phone Number"]
         ):
             messagebox.showerror(
                 "Duplicate",
@@ -276,7 +276,7 @@ class ClientTab:
             values["Name"], values["Address Line 1"],
             values["Address Line 2"], values["Address Line 3"],
             values["City"], values["State"], values["Zip Code"],
-            values["Country"], values["Phone"],
+            values["Country"], values["Phone Number"],
         )
         self.records.append(record)
         if self.storage:
@@ -300,7 +300,7 @@ class ClientTab:
 
         valid, msg = validate_client(
             values["Name"], values["Address Line 1"],
-            values["City"], values["Country"], values["Phone"],
+            values["City"], values["Country"], values["Phone Number"],
         )
         if not valid:
             messagebox.showerror("Validation Error", msg)

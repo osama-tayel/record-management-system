@@ -72,7 +72,7 @@ class TestClientModel(unittest.TestCase):
             "State": " Greater Manchester",
             "Zip Code": "M47 123",
             "Country": "United Kingdom",
-            "Phone": "01619999998"
+            "Phone Number": "01619999998"
         }
         # create_client should return a dictionary with the correct fields and values
         self.assertIsInstance(client, dict)
